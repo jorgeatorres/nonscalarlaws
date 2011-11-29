@@ -1,0 +1,442 @@
+\documentclass{beamer}
+\let\Tiny=\tiny
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsfonts}
+
+\usepackage{graphicx}
+
+\newtheorem{exa}{Ejemplo}
+\renewenvironment{example}{\begin{exa}}{\end{exa}} 
+
+
+\usetheme{Rochester}
+
+\title[Leyes de Conservación No Lineales]{Métodos de diferencias finitas para problemas de conservación no lineales}
+\institute[UNAL]{Universidad Nacional de Colombia \\ Medellín \\ \texttt{jatorreshen@unal.edu.co}}
+\author{Jorge A. Torres}
+\date{29 de noviembre de 2011}
+
+
+\begin{document}
+
+
+% titulo
+\begin{frame}[plain]
+    \titlepage
+\end{frame}
+
+% intro.
+\begin{frame}{Leyes de Conservación No Lineales}
+
+    Buscamos generalizar el estudio las leyes escalares lineales, como las que gobiernan la ecuación de advección, para tratar un problema con la forma más general:
+    
+    \begin{equation}
+        \label{nonscalarlaw} \left\{
+        \begin{array}{rlll}
+            \frac{\partial u}{\partial t} + \frac{\partial f(u)}{\partial x} & = 0, & \forall t > 0,   \forall x \in \mathbb{R} \\
+            u(x, 0) & = u_0(x), & \forall x \in \mathbb{R}
+            
+        \end{array} 
+       \right.
+    \end{equation}
+    
+    \hfill \\
+
+    En lo que sigue $u(x,t)$ se considerará la \emph{densidad} de alguna cantidad conservativa  y $f(u)$ representa el \emph{flujo} de dicha cantidad.
+\end{frame}
+
+% ec. de Burger
+\begin{frame}{Ejemplos}
+
+Algunos ejemplos de \eqref{nonscalarlaw} son:
+
+\begin{itemize}
+    \item La ecuación de advección que tiene flujo \emph{lineal} $ f(u) = cu, c > 0$:
+        $$ u_t + cu_x = 0.$$
+        
+    \item La ecuación de Burger con flujo $f(u) = u^2/2$:
+        $$ u_t + \left(\frac{1}{2}u^2\right)_x = 0$$
+        
+    \item Modelamiento del flujo de tráfico:
+        $$ \frac{\partial \rho}{\partial t} + \frac{\partial \rho v}{\partial x} = 0$$ 
+\end{itemize}
+    
+\end{frame}
+
+% ley de conservación en (a,b)
+\begin{frame}{Conservación de la cantidad}
+
+Si $u$ satisface \eqref{nonscalarlaw} sobre una región $a < x < b$ obtenemos la siguiente ecuación, que da sentido físico al término ``ley de conservación'':
+    
+    $$
+    \begin{array}{ccccc}
+        \underbrace{\frac{d}{dt} \int_{a}^{b} u(x,t) dx} & = & \underbrace{f(u(a,t))} & - & \underbrace{f(u(b,t))} \\
+        \text{cambio de la cantidad} & & \text{flujo de} & & \text{flujo de} \\
+        \text{en el tiempo} & & \text{entrada} & & \text{salida}
+    \end{array}
+    $$
+    
+\end{frame}
+
+% ley de conservación en un rectángulo (a,b) x (t1, t2)
+\begin{frame}{Conservación de la cantidad}
+Obtenemos un resultado análogo al considerar ahora $u$ sobre un rectángulo $(a,b) \times [t_1,t_2]$:
+
+$$
+\int_{a}^{b}{u(x,t_2) dx} = \int_{a}^{b}{u(x,t_1) dx} + \int_{t_1}^{t_2}{f(u(a,t)) dt} - \int_{t_1}^{t_2}{f(u(b,t)) dt}
+$$
+
+$$
+    \text{cantidad total en $t_2$} = \text{total en $t_1$} + \text{flujo entrante} - \text{flujo saliente}
+$$
+
+\end{frame}
+
+
+% sol. analítica
+\begin{frame}{Solución Analítica}
+Buscando derivar una solución analítica para el problema general \eqref{nonscalarlaw} pensemos en reescribir $f(u)_x$ como $\frac{df}{du} \frac{\partial u}{\partial x} = \lambda (u) \frac{\partial u}{\partial x}$ y entonces $u(x,t)$ satisface:
+
+$$
+  \left[\begin{array}{ll}1 & \lambda (u) \end{array}\right] \left[\begin{array}{l} u_t \\ u_x \end{array} \right] = 0
+$$
+
+Como $ \nabla u$ y $[1, \lambda (u)]$ son ortogonales entonces $u$ es constante sobre trayectorias $x = x(t)$ donde $\frac{dx}{dt} = \lambda (u(x,t))$ y, como en el caso lineal, se obtiene
+
+$$
+    u(x,t) = u_0 (x - t \lambda(u(x,t)))
+$$
+
+que determina a $u$ de manera implícita.
+
+\hfill \\
+A $ \lambda(u) $ se le llama \emph{velocidad característica}.
+
+\end{frame}
+
+% sol. analítica (Burger's y Calor)
+\begin{frame}{Solución Analítica}
+Algunas soluciones particulares:
+
+\begin{itemize}
+    \item Para la ecuación de advección $u_t + c u_x = 0$ la velocidad característica es $\lambda (u) = \frac{df}{du} = \frac{d}{du} cu = c$ de manera que la solución coincide con la conocida
+    
+    $$ u(x,t) = u_0 (x - ct)$$
+    
+    \item La ecuación de Burger $u_t + (u^2/2)_x = 0$ tiene solución implícita dada por
+    $$ u(x,t) = u_0 (x - u(x,t)t) $$
+    
+\end{itemize}
+    
+\end{frame}
+
+% tipos de flujo
+\begin{frame}{Tipos de flujo}
+    
+El flujo $f(u)$ puede clasificarse en una de tres categorías:
+
+\begin{itemize}
+    \item Flujo convexo: cuando $\lambda'(u) > 0, \forall u$. En este caso $u_x, u_t$ están acotadas mientras la condición inicial $u_0$ sea no decreciente ($u_0' \geq 0$).
+    \item Flujo cóncavo: cuando $\lambda'(u) < 0, \forall u$. En este caso, $u_x, u_t$ están acotadas mientras la condición inicial $u_0$ sea no creciente ($u_0' \leq 0$).
+    \item Flujo lineal: cuando $\lambda'(u) = 0, \forall u$. $u_x, u_t$ están siempre acotadas.
+\end{itemize}
+    
+\end{frame}
+
+% ejemplos - trafico
+\begin{frame}{Ejemplos - Flujo de Tráfico}
+Si $\rho(x,t)$ es la densidad de vehículos en un tramo de vía sin entradas o salidas (por ej. vehículos por milla) y $v(\rho)$ es la velocidad de los vehículos entonces $\rho v$ es el flujo vehicular y se satisface:
+
+$$ \frac{\partial \rho}{\partial t} + \frac{\partial \rho v}{\partial x} = 0$$
+
+\hfill \\
+Una posible fórmula para $v(\rho)$ es $$v(\rho) = v_{\text{max}} \left(1 - \frac{\rho}{\rho_{\text{max}}} \right). $$
+
+\end{frame}
+
+% ejemplos - burger
+\begin{frame}{Ejemplos - Ecuación de Burger $ u_t + uu_x = 0$}
+
+Resolvemos la ecuación de Burger con condición inicial \emph{continua}
+$$
+    u_0(x) = \left\{
+        \begin{array}{ll}
+            1, & x \leq 0 \\
+            1-x, & 0 \leq x \leq 1 \\
+            0, & 1 \leq x
+        \end{array}
+        \right.
+$$
+\end{frame}
+
+\begin{frame}{Ejemplos - Ecuación de Burger $ u_t + uu_x = 0$}
+    La solución para $t \in (0,1)$:
+
+    \begin{center}    
+        \includegraphics[scale=0.45]{figures/burgers-t035.png}
+    \end{center}
+
+\end{frame}
+
+\begin{frame}{Ejemplos - Ecuación de Burger $ u_t + uu_x = 0$}
+    Las derivadas de $u$ se hacen infinitas en $t = 1$:
+
+    \begin{center}    
+        \includegraphics[scale=0.45]{figures/burgers-t1.png}
+    \end{center}
+
+\end{frame}
+
+% shocks
+% \begin{frame}{Ondas de choque (shocks)}
+%     TODO
+% \end{frame}
+
+% métodos
+\begin{frame}{Métodos de primer orden}
+    
+Para resolver el problema sobre $[a,b] \times [0, T]$ hacemos una discretización de espacio (con $I + 1$ puntos) y temporal (con $N + 1$ puntos) así:
+
+$$ x: a = x_{-1/2} < x_{1/2} < ... < x_{i - 1/2} < ... < x_{I - 3/2} < x_{I - 1/2} = b $$
+
+$$ t: 0 = t^0 < t^1 < ... < t^i < ... < t^N = T $$
+
+Las \emph{celdas} de la malla corresponden a los intervalos $(x_{i - 1/2}, x_{i + 1/2})$ con ancho $\Delta x_i$, $0 \leq i < I$ y el paso en tiempo es $\Delta t := t^{n+1} - t^n$, $0 \leq n < N$.
+\end{frame}
+
+\begin{frame}{Métodos de primer orden}
+Recordamos ahora la ecuación de conservación de la cantidad
+
+$$ \int_{a}^{b}{u(x,t_2) dx} = \int_{a}^{b}{u(x,t_1) dx} + \int_{t_1}^{t_2}{f(u(a,t)) dt} - \int_{t_1}^{t_2}{f(u(b,t)) dt} $$
+
+y la aplicamos sobre el rectángulo $(x_{i - 1/2}, x_{i + 1/2}) \times [t^n, t^{n+1}]$:
+
+$$
+\begin{array}{ll}
+\int_{x_{i - 1/2}}^{x_{i + 1/2}}{u(x,t^{n+1}) dx} = & \int_{x_{i - 1/2}}^{x_{i + 1/2}}{u(x,t^n) dx} \\
+ & + \int_{t^n}^{t^{n+1}}{f(u(x_{i - 1/2},t)) dt} \\
+ & - \int_{t^n}^{t^{n+1}}{f(u(x_{i + 1/2},t)) dt}
+\end{array}
+$$
+\end{frame}
+
+\begin{frame}{Métodos de primer orden}
+Ahora, aproximamos $u_{i}^{n}$ sobre cada celda y $f_{i}^{n}$ sobre los intervalos $[t^n, t^{n+1}]$ como promedios así:
+
+$$ u_{i}^{n} \approx \frac{1}{\Delta x_i} \int_{x_{i - 1/2}}^{x_{i + 1/2}}{u(x,t^{n}) dx} $$
+
+$$ f_{i+1/2}^{n+1/2} \approx \frac{1}{\Delta t^{n+1/2}} \int_{t^n}^{t^{n+1}}{f(u(x_{i + 1/2},t)) dt} $$
+
+$ u_{i}^0$ y el flujo en el borde se aproximan de manera análoga como un promedio sobre la primer celda y el primer intervalo temporal, respectivamente.
+\end{frame}
+
+\begin{frame}{Métodos de primer orden}
+Entonces el esquema resultante tiene la forma conocida de esquema conservativo:
+$$ u_{i}^{n+1} = u_{i}^n - \frac{\Delta t^{n + 1/2}}{\Delta x_i} \left[ f_{i + 1/2}^{n + 1/2} - f_{i - 1/2}^{n + 1/2} \right] $$
+
+Como en el caso de las leyes de conservación lineales, requerimos que el dominio de dependencia de $u_i^{n+1}$ contenga al dominio de dependencia físico y entonces buscamos que
+
+$$ | \lambda(u) | \Delta t^{n + 1/2} \leq \gamma \Delta {x_i} $$ para un $ 0 < \gamma < 1 $ (condición CFL).
+\end{frame}
+
+% Métodos: Upwind
+\begin{frame}{Métodos de primer orden: Upwind}
+
+Inicialmente, debemos distinguir dos casos para el método upwind:
+
+\begin{itemize}
+    \item $\lambda (u) > 0$: Requerimos la condición de borde en $x = a$ y entonces $u(x,t)$ se desplaza a derecha. En este caso, $f_{i + 1/2}^{n + 1/2} = f(u_{i + 1}^n)$ y obtenemos:
+    $$ u_i^{n+1} = u_i^n - \frac{\Delta t^{n + 1/2}}{\Delta x_i} \left[ f(u_{i}^n) - f(u_{i-1}^n))  \right].$$
+    
+    \item $\lambda (u) < 0$: Requerimos la condición de borde en $x = b$ y $u(x,t)$ se desplaza a izquierda. La aproximación por upwind corresponde ahora a
+    
+    $$ u_i^{n+1} = u_i^n - \frac{\Delta t^{n + 1/2}}{\Delta x_i} \left[ f(u_{i+1}^n) - f(u_i^n))  \right].$$
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Métodos de primer orden: Upwind}
+\begin{example}[Upwind-1]
+Resolvemos la ecuación de Burger $u_t + (u^2 / 2)_x = 0$ con condición inicial
+    
+$$
+    u_0(x) = \left\{
+        \begin{array}{ll}
+            1, & x \leq 0 \\
+            1-x, & 0 \leq x \leq 1 \\
+            0, & 1 \leq x
+        \end{array}
+        \right.
+$$
+
+para $\text{CFL} < 1$ y $\text{CFL} > 1$.
+\end{example}
+\end{frame}
+
+\begin{frame}{Métodos de primer orden: Upwind}
+\begin{example}[Upwind-2]
+Resolvemos la ecuación de advección $u_t - u_x = 0$ con condición inicial $ u_0(x) = \text{sin}(2 \pi x)$.
+\end{example}
+\end{frame}
+
+\begin{frame}{Métodos de primer orden: Upwind}
+¿Qué hacer cuando $\lambda(u)$ no es positiva ni negativa?
+\end{frame}
+
+\begin{frame}{Métodos de primer orden: Upwind}
+Si $C > 0$ es una cota para $|\lambda (u)|$ entonces
+
+$$ -C \leq \frac{df}{du} \leq C$$
+
+y hacemos una \emph{transformación de Galileo} del problema original para llevarlo a la forma:
+
+$$ \frac{\partial \hat{u}}{\partial t} + \frac{\partial f(\hat{u}) + C\hat{u}}{\partial x} = 0$$
+
+donde ahora $\hat{\lambda}(\hat{u}) = f'(\hat{u}) + C = \lambda(u) + C > 0$ y podemos aplicar upwind como antes:
+
+$$ \hat{u}_i^{n+1} = \hat{u}_i^n - \frac{\Delta t^{n + 1/2}}{\Delta x_i} \left[ (f(\hat{u}_{i}^n) + C\hat{u}_{i}^n) - ( f(\hat{u}_{i-1}^n)) + C\hat{u}_{i-1}^n) \right]. $$
+
+\end{frame}
+
+\begin{frame}{Métodos de primer orden: Lax-Friedrichs}
+Opera bajo las siguientes ideas:
+\begin{enumerate}
+    \item Definimos $x_i$ como el centro de las celdas $(x_{i-1/2}, x_{i+1/2})$ y obtenemos una aproximación para $u_{i}^{n}$  como un promedio de aproximaciones sobre $(x_{i}, x_{i+1}) \times (t^n, t^n + t^n + \frac{1}{2} \Delta t^{n+1/2})$ y $(x_{i-1/2}, x_{i+1/2}) \times (t^n + \frac{1}{2} \Delta t^{n+1/2}, t^{n+1})$.
+    \item Conocemos una cota superior $\lambda$ sobre $|\lambda(u)|$ para toda $u$.
+    \item El paso de tiempo satisface la condición CFL $$ \lambda \Delta t^{n+1/2} < \Delta {x_i}, \forall i.$$
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Métodos de primer orden: Lax-Friedrichs}
+Las aproximaciones están dadas por:
+
+$$
+\begin{array}{lll}
+    u_{i+1/2}^{n+1/2} & = & \left\{ u_i^n\Delta x_i + u_{i+1}^n \Delta x_{i+1} - \left[ f(u^n_{i+1}) - f(u^n_i) \right] \Delta t^{n+1/2} \right\} \cdot \\ & & \frac{1}{\Delta{x_i} + \Delta x_{i+1}}
+\end{array}
+$$
+
+$$
+    u_i^{n+1} = \frac{1}{2} \left\{ u_{i-1/2}^{n+1/2} + u_{i+1/2}^{n+1/2} - \left[ f(u^{n+1/2}_{i+1/2}) - f(u^{n+1/2}_{i-1/2}) \right] \frac{\Delta t^{n+1/2}}{\Delta x_i} \right\}
+$$
+
+Si la malla es uniforme, $\Delta x_i = \Delta x_{i+1}$ y la aproximación intermedia coincide con una obtenida adelante en espacio.
+
+\end{frame}
+
+\begin{frame}{Métodos de primer orden: Lax-Friedrichs}
+\begin{example}[Lax-1]
+Resolvemos la ecuación de Burger $u_t + (u^2 / 2)_x = 0$ con condición inicial
+    
+$$
+    u_0(x) = \left\{
+        \begin{array}{ll}
+            1, & x \leq 0 \\
+            1-x, & 0 \leq x \leq 1 \\
+            0, & 1 \leq x
+        \end{array}
+        \right.
+$$
+
+\end{example}
+\end{frame}
+
+% Métodos: Rusanov
+\begin{frame}{Métodos de primer orden: Rusanov}
+Buscamos evitar la complejidad de Lax-Friedrichs al tratar con tiempos intermedios.
+
+Suponemos que para cada celda conocemos cotas superiores $\lambda_{i+1/2}$ tales que $$ |\lambda(u)| \leq \lambda_{i+1/2}$$ para todo $u$ entre $u_i^n$ y $u_{i+1}^n$ y definimos $f_{i+1/2}^{+}(u) := f(u) + \lambda_{i+1/2}u$ y $f_{i+1/2}^{-} := f(u) - \lambda_{i+1/2}u.$
+\end{frame}
+
+\begin{frame}{Métodos de primer orden: Rusanov}
+Como $\frac{df^+}{du} \geq 0$ y $\frac{df^-}{du} \leq 0$ para $u$ entre $u_{i}^n$ y $u_{i+1}^n$ la idea es utilizar upwind para cada uno de estos flujos:
+
+$$ \begin{array}{lll}
+f_{i+1/2}^{n+1/2} & = & \frac{1}{2} \left( f^+_{i+1/2}(u^n_i) + f^-_{i+1/2}(u^n_{i+1}) \right)  \\
+& = & \frac{1}{2} \left[ f(u^n_i) + f(u^n_{i+1}) - \lambda_{i+1/2}\left( u^n_{i+1} - u^n_{i}\right)    \right]
+\end{array}
+$$
+
+\end{frame}
+
+% Métodos: Godunov
+\begin{frame}{Métodos de primer orden: Godunov}
+Un problema de leyes de conservación con condición inicial dada por dos estados constantes distintos
+
+$$
+u_0(x) = \left\{
+\begin{array}{ll}
+    u_-, & x < 0 \\
+    u_+, & x > 0
+\end{array}
+\right.
+$$
+
+se llama problema de Riemann.
+
+Un problema de Riemann tiene solución $u(x,t)$ que es función de $x/t$ y denotamos por $\mathcal{R} (u_-, u_+; x/t)$.
+
+\end{frame}
+
+\begin{frame}{Métodos de primer orden: Godunov}
+Consideramos el flujo $f(\mathcal{R} (u_-, u_+; 0))$ sobre el rectángulo $(x_{i-1/2}, x_{i+1/2}) \times (t^n, t^{n+1})$ al hacer la aproximación de $f^{n+1/2}_{i+1/2}.$
+
+Como en el método Upwind, obtenemos el esquema conservativo:
+
+$$ u_{i}^{n+1} = u_{i}^n - \frac{\Delta t^{n + 1/2}}{\Delta x_i} \left[ f_{i + 1/2}^{n + 1/2} - f_{i - 1/2}^{n + 1/2} \right] $$
+
+\end{frame}
+
+\begin{frame}{Métodos de primer orden: Godunov}
+Godunov coincide con el método Upwind para la ecuación de advección $u_t + cu_x = 0$:
+
+\begin{itemize}
+    \item Si $c > 0$ entonces $f(\mathcal{R} (u_-, u_+; 0)) = f(u_-) = c u_{-}$ y así
+    $$ u^{n+1}_i = u^{n}_i - \frac{\Delta t^{n + 1/2}}{\Delta x_i} \left[ cu^{n}_i - cu^{n}_{i-1}\right]$$
+    
+    \item Si $c < 0$ entonces $\mathcal{R} (u_-, u_+; 0) = u_+$ y obtenemos exactamente el método Upwind para $c < 0$.
+    
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Métodos de primer orden: Godunov}
+\begin{example}[Godunov-1]
+Resolvemos la ecuación de Burger $u_t + (u^2 / 2)_x = 0$ con condición inicial
+    
+$$
+    u_0(x) = \left\{
+        \begin{array}{ll}
+            1, & x \leq 0 \\
+            1-x, & 0 \leq x \leq 1 \\
+            0, & 1 \leq x
+        \end{array}
+        \right.
+$$
+
+En este caso, el flujo de la solución del problema de Riemann está dada por:
+
+$$
+f(\mathcal{R}(u_L, u_R)) = \left\{
+    \begin{array}{ll}
+        \frac{1}{2} max(u_L, min(u_R, 0))^2 & u_L < u_R \\
+        \frac{1}{2} max(|u_L|, |u_R|)^2 & u_L \geq u_R
+    \end{array}
+\right.
+$$
+
+\end{example}
+\end{frame}
+
+% Codigo / Referencias
+\begin{frame}{Referencias / Código Fuente}
+\begin{enumerate}
+    \item Trangenstein, J. \textit{Numerical Solution Of Hyperbolic Partial Differential Equations}. Cambridge University Press, 2007.
+    \item LeVeque, R. \textit{Numerical Methods for Conservation Laws}. Birkhäuser, 1992.
+    \item Código fuente (Latex + Python):
+          \texttt{https://github.com/jorgeatorres/nonscalarlaws}
+    \item SciPy / NumPy:
+          \texttt{http://scipy.org}
+\end{enumerate}
+\end{frame}
+
+\end{document}
